@@ -1,3 +1,6 @@
+# Временная сложность - О(n**2)
+# Пространственная сложность - О(1)
+
 def check_prime(num: int) -> bool:
     if num < 2:
         return False
