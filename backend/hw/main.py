@@ -1,8 +1,28 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from routers.predict import router as predict_router
+from model import ensure_model_exists
 import uvicorn
+import logging
 
-app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        model = ensure_model_exists()
+        app.state.model = model
+        logger.info("Модель успешно загружена")
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке модели: {e}")
+        app.state.model = None
+    yield
+    logger.info("Завершение работы сервиса")
+
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(predict_router)
 
 @app.get("/")
