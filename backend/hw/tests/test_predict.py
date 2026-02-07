@@ -71,7 +71,7 @@ def test_predict_invalid_data_types(app_client: TestClient):
 def test_predict_model_not_loaded(app_client: TestClient):
     original_model = app.state.model
     app.state.model = None
-    
+
     try:
         response = app_client.post(
             "/predict",

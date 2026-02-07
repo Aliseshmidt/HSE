@@ -4,5 +4,8 @@ pydantic
 scikit-learn
 numpy
 pytest
+pytest-asyncio
 httpx
-
+asyncpg
+psycopg2-binary
+yandex-pgmigrate
