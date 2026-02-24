@@ -9,3 +9,5 @@ httpx
 asyncpg
 psycopg2-binary
 yandex-pgmigrate
+aiokafka
+sqlalchemy

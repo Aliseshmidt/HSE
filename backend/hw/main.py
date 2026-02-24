@@ -2,8 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from routers.predict import router as predict_router
 from routers.simple_predict import router as simple_predict_router
+from routers.async_predict import router as async_predict_router
+from routers.moderation_result import router as moderation_result_router
 from model import ensure_model_exists
 from database import db
+from clients.kafka import close_kafka_producer
 import uvicorn
 import logging
 
@@ -30,6 +33,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    await close_kafka_producer()
     await db.disconnect()
     logger.info("Завершение работы сервиса")
 
@@ -37,6 +41,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(predict_router)
 app.include_router(simple_predict_router)
+app.include_router(async_predict_router)
+app.include_router(moderation_result_router)
 
 
 @app.get("/")

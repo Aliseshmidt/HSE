@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 from services.predict import PredictService, PredictionError, ModelNotLoadedError
 
-
 router = APIRouter(prefix="/predict", tags=["predict"])
+
 
 class PredictInDto(BaseModel):
     seller_id: int
@@ -29,7 +29,7 @@ def get_predict_service(request: Request) -> PredictService:
 @router.post("", response_model=PredictOutDto, status_code=status.HTTP_200_OK)
 async def predict(dto: PredictInDto, request: Request) -> PredictOutDto:
     predict_service = get_predict_service(request)
-    
+
     try:
         is_violation, probability = await predict_service.predict(
             seller_id=dto.seller_id,
@@ -54,4 +54,3 @@ async def predict(dto: PredictInDto, request: Request) -> PredictOutDto:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f'Ошибка при предсказании {str(e)}'
         )
-
