@@ -7,6 +7,8 @@ from repositories.moderation_results import moderation_result_repository
 from services.predict import PredictService, PredictionError, ModelNotLoadedError
 from model import ensure_model_exists
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_moderation_worker_process_message_success():

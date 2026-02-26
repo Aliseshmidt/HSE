@@ -4,6 +4,8 @@ import pytest
 from repositories.users import user_repository
 from repositories.items import item_repository
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_simple_predict_positive(async_app_client: AsyncClient):

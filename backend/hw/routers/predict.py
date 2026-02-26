@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 from services.predict import PredictService, PredictionError, ModelNotLoadedError
+from prediction_storage import prediction_storage
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
@@ -28,6 +29,11 @@ def get_predict_service(request: Request) -> PredictService:
 
 @router.post("", response_model=PredictOutDto, status_code=status.HTTP_200_OK)
 async def predict(dto: PredictInDto, request: Request) -> PredictOutDto:
+    cached = await prediction_storage.get_by_item_id(dto.item_id)
+    if cached is not None:
+        is_violation, probability = cached
+        return PredictOutDto(is_violation=is_violation, probability=probability)
+
     predict_service = get_predict_service(request)
 
     try:
@@ -39,6 +45,12 @@ async def predict(dto: PredictInDto, request: Request) -> PredictOutDto:
             description=dto.description,
             category=dto.category,
             images_qty=dto.images_qty
+        )
+
+        await prediction_storage.set_by_item_id(
+            item_id=dto.item_id,
+            is_violation=is_violation,
+            probability=probability,
         )
         return PredictOutDto(
             is_violation=is_violation,

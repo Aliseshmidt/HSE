@@ -9,6 +9,7 @@ from model import ensure_model_exists
 from database import db
 from repositories.users import user_repository
 from repositories.items import item_repository
+from redis_client import connect_redis, close_redis, get_redis
 import asyncio
 import os
 from urllib.parse import quote_plus
@@ -23,22 +24,42 @@ def load_model_for_tests():
 
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def setup_database():
+async def setup_database(request):
     test_db_url = os.getenv(
         "DATABASE_URL",
         "postgresql://user:%20@localhost:5432/backend_avito"
     )
     os.environ["DATABASE_URL"] = test_db_url
 
+    if request.node.get_closest_marker("integration") is None:
+        yield
+        return
+
     try:
         await db.connect()
         yield
         try:
-            await db.execute("TRUNCATE TABLE items, users RESTART IDENTITY CASCADE")
+            await db.execute("TRUNCATE TABLE items, users, moderation_results RESTART IDENTITY CASCADE")
         except Exception as e:
             print(f"Ошибка при очистке БД: {e}")
     finally:
         await db.disconnect()
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def setup_redis(request):
+    if request.node.get_closest_marker("integration") is None:
+        yield
+        return
+
+    await connect_redis()
+    client = get_redis()
+    await client.flushdb()
+    try:
+        yield
+    finally:
+        await client.flushdb()
+        await close_redis()
 
 
 @pytest.fixture

@@ -4,11 +4,13 @@ from routers.predict import router as predict_router
 from routers.simple_predict import router as simple_predict_router
 from routers.async_predict import router as async_predict_router
 from routers.moderation_result import router as moderation_result_router
+from routers.close_item import router as close_item_router
 from model import ensure_model_exists
 from database import db
 from clients.kafka import close_kafka_producer
 import uvicorn
 import logging
+from redis_client import connect_redis, close_redis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,13 +29,17 @@ async def lifespan(app: FastAPI):
     try:
         await db.connect()
         logger.info("Подключение к БД установлено")
+
+        await connect_redis()
+        logger.info("Подключение к Redis установлено")
     except Exception as e:
-        logger.error(f"Ошибка при подключении к БД: {e}")
+        logger.error(f"Ошибка при инициализации ресурсов: {e}")
         raise
 
     yield
 
     await close_kafka_producer()
+    await close_redis()
     await db.disconnect()
     logger.info("Завершение работы сервиса")
 
@@ -43,6 +49,7 @@ app.include_router(predict_router)
 app.include_router(simple_predict_router)
 app.include_router(async_predict_router)
 app.include_router(moderation_result_router)
+app.include_router(close_item_router)
 
 
 @app.get("/")

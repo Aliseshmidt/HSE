@@ -1,6 +1,8 @@
 import pytest
 from clients.kafka import KafkaProducer
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_send_to_dlq():

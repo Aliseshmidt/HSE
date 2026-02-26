@@ -30,5 +30,14 @@ class ItemRepository:
         )
         return dict(row)
 
+    async def delete_by_item_id(self, item_id: int) -> None:
+        await db.execute(
+            """
+            DELETE FROM items
+            WHERE item_id = $1
+            """,
+            item_id,
+        )
+
 
 item_repository = ItemRepository()

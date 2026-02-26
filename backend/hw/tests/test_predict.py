@@ -1,11 +1,26 @@
 from http import HTTPStatus
 from fastapi.testclient import TestClient
 import pytest
+from unittest.mock import AsyncMock
+
 from main import app
 from model import ensure_model_exists
 
 
-def test_predict_violation_true(app_client: TestClient):
+def _mock_prediction_storage(monkeypatch):
+    from routers import predict as predict_router_module
+
+    mock_storage = AsyncMock()
+    mock_storage.get_by_item_id = AsyncMock(return_value=None)
+    mock_storage.set_by_item_id = AsyncMock(return_value=None)
+
+    monkeypatch.setattr(predict_router_module, "prediction_storage", mock_storage)
+    return mock_storage
+
+
+def test_predict_violation_true(app_client: TestClient, monkeypatch):
+    _mock_prediction_storage(monkeypatch)
+
     response = app_client.post(
         "/predict",
         json={
@@ -15,7 +30,7 @@ def test_predict_violation_true(app_client: TestClient):
             "name": "test item",
             "description": "test description",
             "category": 50,
-            "images_qty": 1
+            "images_qty": 1,
         },
     )
 
@@ -28,7 +43,9 @@ def test_predict_violation_true(app_client: TestClient):
     assert 0.0 <= data["probability"] <= 1.0
 
 
-def test_predict_violation_false(app_client: TestClient):
+def test_predict_violation_false(app_client: TestClient, monkeypatch):
+    _mock_prediction_storage(monkeypatch)
+
     response = app_client.post(
         "/predict",
         json={
@@ -38,7 +55,7 @@ def test_predict_violation_false(app_client: TestClient):
             "name": "test item 2",
             "description": "test description with more text",
             "category": 30,
-            "images_qty": 5
+            "images_qty": 5,
         },
     )
 
@@ -51,7 +68,9 @@ def test_predict_violation_false(app_client: TestClient):
     assert 0.0 <= data["probability"] <= 1.0
 
 
-def test_predict_invalid_data_types(app_client: TestClient):
+def test_predict_invalid_data_types(app_client: TestClient, monkeypatch):
+    _mock_prediction_storage(monkeypatch)
+
     response = app_client.post(
         "/predict",
         json={
@@ -68,7 +87,9 @@ def test_predict_invalid_data_types(app_client: TestClient):
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_predict_model_not_loaded(app_client: TestClient):
+def test_predict_model_not_loaded(app_client: TestClient, monkeypatch):
+    _mock_prediction_storage(monkeypatch)
+
     original_model = app.state.model
     app.state.model = None
 

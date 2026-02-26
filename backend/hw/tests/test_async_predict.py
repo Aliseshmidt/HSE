@@ -6,6 +6,8 @@ from repositories.users import user_repository
 from repositories.items import item_repository
 from repositories.moderation_results import moderation_result_repository
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_async_predict_create_task(async_app_client: AsyncClient):

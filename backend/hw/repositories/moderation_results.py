@@ -88,6 +88,26 @@ class ModerationResultRepository:
             return dict(row)
         return None
 
+    async def get_ids_by_item_internal_id(self, item_id: int) -> list[int]:
+        rows = await db.fetch(
+            """
+            SELECT id
+            FROM moderation_results
+            WHERE item_id = $1
+            """,
+            item_id,
+        )
+        return [row["id"] for row in rows]
+
+    async def delete_by_item_internal_id(self, item_id: int) -> None:
+        await db.execute(
+            """
+            DELETE FROM moderation_results
+            WHERE item_id = $1
+            """,
+            item_id,
+        )
+
 
 moderation_result_repository = ModerationResultRepository()
 

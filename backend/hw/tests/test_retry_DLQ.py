@@ -8,6 +8,8 @@ from repositories.moderation_results import moderation_result_repository
 from services.predict import ModelNotLoadedError, PredictService
 from clients.kafka import KafkaProducer
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.asyncio
 async def test_retry_mechanism():

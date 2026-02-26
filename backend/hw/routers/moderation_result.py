@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional
 from repositories.moderation_results import moderation_result_repository
+from prediction_storage import prediction_storage
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,16 @@ class ModerationResultOutDto(BaseModel):
 
 @router.get("/{task_id}", response_model=ModerationResultOutDto, status_code=status.HTTP_200_OK)
 async def get_moderation_result(task_id: int) -> ModerationResultOutDto:
+    cached = await prediction_storage.get_by_task_id(task_id)
+    if cached is not None:
+        status_value, is_violation, probability = cached
+        return ModerationResultOutDto(
+            task_id=task_id,
+            status=status_value,
+            is_violation=is_violation,
+            probability=probability,
+        )
+
     moderation_result = await moderation_result_repository.get_by_id(task_id)
     
     if moderation_result is None:
@@ -26,10 +37,17 @@ async def get_moderation_result(task_id: int) -> ModerationResultOutDto:
             detail=f"Задача модерации с task_id={task_id} не найдена"
         )
 
+    await prediction_storage.set_by_task_id(
+        task_id=moderation_result['id'],
+        status=moderation_result['status'],
+        is_violation=moderation_result['is_violation'],
+        probability=moderation_result['probability'],
+    )
+
     return ModerationResultOutDto(
         task_id=moderation_result['id'],
         status=moderation_result['status'],
         is_violation=moderation_result['is_violation'],
-        probability=moderation_result['probability']
+        probability=moderation_result['probability'],
     )
 
