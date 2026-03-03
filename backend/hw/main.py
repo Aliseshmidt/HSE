@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from routers.predict import router as predict_router
 from routers.simple_predict import router as simple_predict_router
 from routers.async_predict import router as async_predict_router
@@ -45,6 +46,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+Instrumentator().instrument(app).expose(app)
+
 app.include_router(predict_router)
 app.include_router(simple_predict_router)
 app.include_router(async_predict_router)

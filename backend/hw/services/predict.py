@@ -1,6 +1,14 @@
 import numpy as np
 import logging
+import time
 from typing import Tuple
+
+from app.metrics import (
+    MODEL_PREDICTION_PROBABILITY,
+    PREDICTION_DURATION_SECONDS,
+    PREDICTION_ERRORS_TOTAL,
+    PREDICTIONS_TOTAL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +40,7 @@ class PredictService:
 
     async def predict(self, seller_id: int, is_verified_seller: bool, item_id: int, name: str, description: str, category: int, images_qty: int) -> Tuple[bool, float]:
         if self.model is None:
+            PREDICTION_ERRORS_TOTAL.labels(error_type="model_unavailable").inc()
             raise ModelNotLoadedError("Модель не загружена")
 
         try:
@@ -48,10 +57,16 @@ class PredictService:
                 category=category
             )
 
+            t0 = time.perf_counter()
             prediction = self.model.predict(features)[0]
             probability = self.model.predict_proba(features)[0][1]
+            PREDICTION_DURATION_SECONDS.observe(time.perf_counter() - t0)
 
             is_violation = bool(prediction)
+            PREDICTIONS_TOTAL.labels(
+                result="violation" if is_violation else "no_violation"
+            ).inc()
+            MODEL_PREDICTION_PROBABILITY.observe(float(probability))
 
             logger.info(
                 f"Результат предсказания: seller_id={seller_id}, item_id={item_id}, "
@@ -61,5 +76,6 @@ class PredictService:
             return is_violation, float(probability)
 
         except Exception as e:
+            PREDICTION_ERRORS_TOTAL.labels(error_type="prediction_error").inc()
             logger.error(f"Ошибка при предсказании: {e}")
             raise PredictionError(f"Ошибка при предсказании: {str(e)}")

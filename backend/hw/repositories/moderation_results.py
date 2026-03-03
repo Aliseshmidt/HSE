@@ -1,46 +1,51 @@
 from database import db
 from typing import Optional
 
+from app.metrics import DB_QUERY_DURATION_SECONDS
+
 
 class ModerationResultRepository:
     async def create(self, item_id: int) -> dict:
-        row = await db.fetchrow(
-            """
-            INSERT INTO moderation_results (item_id, status)
-            VALUES ($1, 'pending')
-            RETURNING id, item_id, status, is_violation, probability, 
-                     error_message, created_at, processed_at
-            """,
-            item_id
-        )
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="insert").time():
+            row = await db.fetchrow(
+                """
+                INSERT INTO moderation_results (item_id, status)
+                VALUES ($1, 'pending')
+                RETURNING id, item_id, status, is_violation, probability, 
+                         error_message, created_at, processed_at
+                """,
+                item_id
+            )
         return dict(row)
 
     async def get_by_id(self, moderation_id: int) -> Optional[dict]:
-        row = await db.fetchrow(
-            """
-            SELECT id, item_id, status, is_violation, probability, 
-                   error_message, created_at, processed_at
-            FROM moderation_results
-            WHERE id = $1
-            """,
-            moderation_id
-        )
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="select").time():
+            row = await db.fetchrow(
+                """
+                SELECT id, item_id, status, is_violation, probability, 
+                       error_message, created_at, processed_at
+                FROM moderation_results
+                WHERE id = $1
+                """,
+                moderation_id
+            )
         if row:
             return dict(row)
         return None
 
     async def get_latest_by_item_id(self, item_id: int) -> Optional[dict]:
-        row = await db.fetchrow(
-            """
-            SELECT id, item_id, status, is_violation, probability, 
-                   error_message, created_at, processed_at
-            FROM moderation_results
-            WHERE item_id = $1
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            item_id
-        )
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="select").time():
+            row = await db.fetchrow(
+                """
+                SELECT id, item_id, status, is_violation, probability, 
+                       error_message, created_at, processed_at
+                FROM moderation_results
+                WHERE item_id = $1
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                item_id
+            )
         if row:
             return dict(row)
         return None
@@ -83,30 +88,33 @@ class ModerationResultRepository:
                      error_message, created_at, processed_at
         """
 
-        row = await db.fetchrow(query, *params)
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="update").time():
+            row = await db.fetchrow(query, *params)
         if row:
             return dict(row)
         return None
 
     async def get_ids_by_item_internal_id(self, item_id: int) -> list[int]:
-        rows = await db.fetch(
-            """
-            SELECT id
-            FROM moderation_results
-            WHERE item_id = $1
-            """,
-            item_id,
-        )
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="select").time():
+            rows = await db.fetch(
+                """
+                SELECT id
+                FROM moderation_results
+                WHERE item_id = $1
+                """,
+                item_id,
+            )
         return [row["id"] for row in rows]
 
     async def delete_by_item_internal_id(self, item_id: int) -> None:
-        await db.execute(
-            """
-            DELETE FROM moderation_results
-            WHERE item_id = $1
-            """,
-            item_id,
-        )
+        with DB_QUERY_DURATION_SECONDS.labels(query_type="delete").time():
+            await db.execute(
+                """
+                DELETE FROM moderation_results
+                WHERE item_id = $1
+                """,
+                item_id,
+            )
 
 
 moderation_result_repository = ModerationResultRepository()
