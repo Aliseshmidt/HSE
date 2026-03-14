@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from repositories.items import item_repository
 from repositories.moderation_results import moderation_result_repository
+from dependencies.auth import get_current_account
 from clients.kafka import get_kafka_producer
 import logging
 
@@ -21,7 +22,10 @@ class AsyncPredictOutDto(BaseModel):
 
 
 @router.post("", response_model=AsyncPredictOutDto, status_code=status.HTTP_200_OK)
-async def async_predict(dto: AsyncPredictInDto) -> AsyncPredictOutDto:
+async def async_predict(
+    dto: AsyncPredictInDto,
+    account=Depends(get_current_account),
+) -> AsyncPredictOutDto:
     item_id = dto.item_id
 
     item = await item_repository.get_by_item_id(item_id)

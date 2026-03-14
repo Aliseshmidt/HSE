@@ -6,6 +6,7 @@ from routers.simple_predict import router as simple_predict_router
 from routers.async_predict import router as async_predict_router
 from routers.moderation_result import router as moderation_result_router
 from routers.close_item import router as close_item_router
+from routers.auth import router as auth_router
 from model import ensure_model_exists
 from database import db
 from clients.kafka import close_kafka_producer
@@ -49,6 +50,7 @@ app = FastAPI(lifespan=lifespan)
 
 Instrumentator().instrument(app).expose(app)
 
+app.include_router(auth_router)
 app.include_router(predict_router)
 app.include_router(simple_predict_router)
 app.include_router(async_predict_router)

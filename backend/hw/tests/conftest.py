@@ -27,7 +27,7 @@ def load_model_for_tests():
 async def setup_database(request):
     test_db_url = os.getenv(
         "DATABASE_URL",
-        "postgresql://user:%20@localhost:5432/backend_avito"
+        "postgresql://postgres: @localhost:5432/backend_avito"
     )
     os.environ["DATABASE_URL"] = test_db_url
 
@@ -39,7 +39,7 @@ async def setup_database(request):
         await db.connect()
         yield
         try:
-            await db.execute("TRUNCATE TABLE items, users, moderation_results RESTART IDENTITY CASCADE")
+            await db.execute("TRUNCATE TABLE items, users, moderation_results, account RESTART IDENTITY CASCADE")
         except Exception as e:
             print(f"Ошибка при очистке БД: {e}")
     finally:

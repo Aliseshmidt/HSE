@@ -3,12 +3,16 @@ from httpx import AsyncClient
 import pytest
 from repositories.users import user_repository
 from repositories.items import item_repository
+from repositories.accounts import account_repository
+from services.auth import AuthService
 
 pytestmark = pytest.mark.integration
 
 
 @pytest.mark.asyncio
 async def test_simple_predict_positive(async_app_client: AsyncClient):
+    account = await account_repository.create(login="user1", password="pass")
+    token = AuthService(secret_key="very-secret-key").create_access_token(account)
     user = await user_repository.create(
         seller_id=1,
         is_verified_seller=False
@@ -22,7 +26,10 @@ async def test_simple_predict_positive(async_app_client: AsyncClient):
         images_qty=1
     )
 
-    response = await async_app_client.post(f"/simple_predict/{item['item_id']}")
+    response = await async_app_client.post(
+        f"/simple_predict/{item['item_id']}",
+        cookies={"access_token": token},
+    )
 
     assert response.status_code == HTTPStatus.OK
     data = response.json()
@@ -34,6 +41,8 @@ async def test_simple_predict_positive(async_app_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_simple_predict_negative(async_app_client: AsyncClient):
+    account = await account_repository.create(login="user2", password="pass")
+    token = AuthService(secret_key="very-secret-key").create_access_token(account)
     user = await user_repository.create(
         seller_id=2,
         is_verified_seller=True
@@ -47,7 +56,10 @@ async def test_simple_predict_negative(async_app_client: AsyncClient):
         images_qty=5
     )
 
-    response = await async_app_client.post(f"/simple_predict/{item['item_id']}")
+    response = await async_app_client.post(
+        f"/simple_predict/{item['item_id']}",
+        cookies={"access_token": token},
+    )
 
     assert response.status_code == HTTPStatus.OK
     data = response.json()
@@ -57,7 +69,13 @@ async def test_simple_predict_negative(async_app_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_simple_predict_not_found(async_app_client: AsyncClient):
-    response = await async_app_client.post("/simple_predict/99999")
+    account = await account_repository.create(login="user3", password="pass")
+    token = AuthService(secret_key="very-secret-key").create_access_token(account)
+
+    response = await async_app_client.post(
+        "/simple_predict/99999",
+        cookies={"access_token": token},
+    )
 
     assert response.status_code == HTTPStatus.NOT_FOUND
 

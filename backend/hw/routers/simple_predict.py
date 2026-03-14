@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status, Request
+from fastapi import APIRouter, HTTPException, status, Request, Depends
 from pydantic import BaseModel
 from services.predict import PredictService, PredictionError, ModelNotLoadedError
 from repositories.items import item_repository
 from prediction_storage import prediction_storage
+from dependencies.auth import get_current_account
 
 router = APIRouter(prefix="/simple_predict", tags=["simple_predict"])
 
@@ -19,7 +20,11 @@ def get_predict_service(request: Request) -> PredictService:
 
 
 @router.post("/{item_id}", response_model=SimplePredictOutDto, status_code=status.HTTP_200_OK)
-async def simple_predict(item_id: int, request: Request) -> SimplePredictOutDto:
+async def simple_predict(
+    item_id: int,
+    request: Request,
+    account=Depends(get_current_account),
+) -> SimplePredictOutDto:
     cached = await prediction_storage.get_by_item_id(item_id)
     if cached is not None:
         is_violation, probability = cached

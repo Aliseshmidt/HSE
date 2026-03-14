@@ -2,6 +2,11 @@ import asyncpg
 import os
 from typing import Optional
 
+# DB_USER = os.getenv("DB_USER", "postgres")
+# DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+# DB_HOST = os.getenv("DB_HOST", "localhost")
+# DB_PORT = os.getenv("DB_PORT", "5435")
+# DB_NAME = os.getenv("DB_NAME", "hw")
 DB_USER = "postgres"
 DB_PASSWORD = ' '
 DB_HOST = 'localhost'
@@ -13,14 +18,16 @@ class Database:
         self.pool: Optional[asyncpg.Pool] = None
 
     async def connect(self):
-        database_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            database_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
         self.pool = await asyncpg.create_pool(
             database_url,
             min_size=1,
             max_size=10
         )
-        print(f"Подключение к БД установлено: {DB_NAME if 'db_name' in locals() else 'из DATABASE_URL'}")
+        print(f"Подключение к БД установлено: {database_url}")
 
     async def disconnect(self):
         if self.pool:
@@ -42,5 +49,6 @@ class Database:
     async def fetchval(self, query: str, *args):
         async with self.pool.acquire() as conn:
             return await conn.fetchval(query, *args)
+
 
 db = Database()

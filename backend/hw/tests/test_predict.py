@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock
 
 from main import app
 from model import ensure_model_exists
+from services.auth import AuthService
+from dependencies.auth import get_current_account
 
 
 def _mock_prediction_storage(monkeypatch):
@@ -18,21 +20,36 @@ def _mock_prediction_storage(monkeypatch):
     return mock_storage
 
 
+def _create_auth_cookie():
+    service = AuthService(secret_key="very-secret-key")
+    token = service.create_access_token({"id": 1, "login": "user"})
+    return {"access_token": token}
+
+
 def test_predict_violation_true(app_client: TestClient, monkeypatch):
     _mock_prediction_storage(monkeypatch)
 
-    response = app_client.post(
-        "/predict",
-        json={
-            "seller_id": 1,
-            "is_verified_seller": False,
-            "item_id": 10,
-            "name": "test item",
-            "description": "test description",
-            "category": 50,
-            "images_qty": 1,
-        },
-    )
+    app.dependency_overrides[get_current_account] = lambda: {
+        "id": 1,
+        "login": "user",
+        "is_blocked": False,
+    }
+    try:
+        response = app_client.post(
+            "/predict",
+            json={
+                "seller_id": 1,
+                "is_verified_seller": False,
+                "item_id": 10,
+                "name": "test item",
+                "description": "test description",
+                "category": 50,
+                "images_qty": 1,
+            },
+            cookies=_create_auth_cookie(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_account, None)
 
     assert response.status_code == HTTPStatus.OK
     data = response.json()
@@ -46,18 +63,27 @@ def test_predict_violation_true(app_client: TestClient, monkeypatch):
 def test_predict_violation_false(app_client: TestClient, monkeypatch):
     _mock_prediction_storage(monkeypatch)
 
-    response = app_client.post(
-        "/predict",
-        json={
-            "seller_id": 2,
-            "is_verified_seller": True,
-            "item_id": 11,
-            "name": "test item 2",
-            "description": "test description with more text",
-            "category": 30,
-            "images_qty": 5,
-        },
-    )
+    app.dependency_overrides[get_current_account] = lambda: {
+        "id": 1,
+        "login": "user",
+        "is_blocked": False,
+    }
+    try:
+        response = app_client.post(
+            "/predict",
+            json={
+                "seller_id": 2,
+                "is_verified_seller": True,
+                "item_id": 11,
+                "name": "test item 2",
+                "description": "test description with more text",
+                "category": 30,
+                "images_qty": 5,
+            },
+            cookies=_create_auth_cookie(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_account, None)
 
     assert response.status_code == HTTPStatus.OK
     data = response.json()
@@ -71,18 +97,27 @@ def test_predict_violation_false(app_client: TestClient, monkeypatch):
 def test_predict_invalid_data_types(app_client: TestClient, monkeypatch):
     _mock_prediction_storage(monkeypatch)
 
-    response = app_client.post(
-        "/predict",
-        json={
-            "seller_id": 3,
-            "is_verified_seller": False,
-            "item_id": 12,
-            "name": 123,
-            "description": "test",
-            "category": 3,
-            "images_qty": 0,
-        },
-    )
+    app.dependency_overrides[get_current_account] = lambda: {
+        "id": 1,
+        "login": "user",
+        "is_blocked": False,
+    }
+    try:
+        response = app_client.post(
+            "/predict",
+            json={
+                "seller_id": 3,
+                "is_verified_seller": False,
+                "item_id": 12,
+                "name": 123,
+                "description": "test",
+                "category": 3,
+                "images_qty": 0,
+            },
+            cookies=_create_auth_cookie(),
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_account, None)
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
@@ -94,18 +129,27 @@ def test_predict_model_not_loaded(app_client: TestClient, monkeypatch):
     app.state.model = None
 
     try:
-        response = app_client.post(
-            "/predict",
-            json={
-                "seller_id": 4,
-                "is_verified_seller": True,
-                "item_id": 13,
-                "name": "test",
-                "description": "test",
-                "category": 1,
-                "images_qty": 1,
-            },
-        )
+        app.dependency_overrides[get_current_account] = lambda: {
+            "id": 1,
+            "login": "user",
+            "is_blocked": False,
+        }
+        try:
+            response = app_client.post(
+                "/predict",
+                json={
+                    "seller_id": 4,
+                    "is_verified_seller": True,
+                    "item_id": 13,
+                    "name": "test",
+                    "description": "test",
+                    "category": 1,
+                    "images_qty": 1,
+                },
+                cookies=_create_auth_cookie(),
+            )
+        finally:
+            app.dependency_overrides.pop(get_current_account, None)
 
         assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert "модель" in response.json()["detail"].lower() or "model" in response.json()["detail"].lower()

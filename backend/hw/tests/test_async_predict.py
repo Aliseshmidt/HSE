@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 from repositories.users import user_repository
 from repositories.items import item_repository
+from repositories.accounts import account_repository
+from services.auth import AuthService
 from repositories.moderation_results import moderation_result_repository
 
 pytestmark = pytest.mark.integration
@@ -11,6 +13,8 @@ pytestmark = pytest.mark.integration
 
 @pytest.mark.asyncio
 async def test_async_predict_create_task(async_app_client: AsyncClient):
+    account = await account_repository.create(login="user_async", password="pass")
+    token = AuthService(secret_key="very-secret-key").create_access_token(account)
     user = await user_repository.create(
         seller_id=1000,
         is_verified_seller=False
@@ -32,7 +36,8 @@ async def test_async_predict_create_task(async_app_client: AsyncClient):
 
         response = await async_app_client.post(
             "/async_predict",
-            json={"item_id": item['item_id']}
+            json={"item_id": item['item_id']},
+            cookies={"access_token": token},
         )
 
     assert response.status_code == HTTPStatus.OK
@@ -53,9 +58,13 @@ async def test_async_predict_create_task(async_app_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_async_predict_item_not_found(async_app_client: AsyncClient):
+    account = await account_repository.create(login="user_async_nf", password="pass")
+    token = AuthService(secret_key="very-secret-key").create_access_token(account)
+
     response = await async_app_client.post(
         "/async_predict",
-        json={"item_id": 99999}
+        json={"item_id": 99999},
+        cookies={"access_token": token},
     )
 
     assert response.status_code == HTTPStatus.NOT_FOUND

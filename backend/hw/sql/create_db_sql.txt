@@ -34,5 +34,12 @@ CREATE TABLE IF NOT EXISTS moderation_results (
     processed_at TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS account (
+    id SERIAL PRIMARY KEY,
+    login TEXT NOT NULL,
+    password TEXT NOT NULL,
+    is_blocked BOOLEAN NOT NULL DEFAULT FALSE
+);
+
 CREATE INDEX IF NOT EXISTS idx_moderation_results_item_id ON moderation_results(item_id);
 CREATE INDEX IF NOT EXISTS idx_moderation_results_status ON moderation_results(status);
