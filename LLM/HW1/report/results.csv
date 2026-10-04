@@ -1,0 +1,11 @@
+run,time_budget_s,batch_size,gradient_accumulation,learning_rate,scheduler,torch_compile,optim,steps,tokens_per_second,eval_loss,perplexity,peak_gpu_memory_gb
+final,900,16,1,0.001,cosine,True,adamw_torch_fused,3193,28800.6,5.480667591094971,240.0068803593368,16.53
+probe_bs16,60,16,1,0.0006,cosine,True,adamw_torch_fused,158,19818.8,7.526062965393066,1855.7848130745674,16.45
+probe_bs16_ga2,60,16,2,0.0006,cosine,True,adamw_torch_fused,108,27013.7,7.384820461273193,1611.338471364474,18.23
+probe_bs16_warm,60,16,1,0.0006,cosine,True,adamw_torch_fused,212,26540.6,7.201416969299316,1341.3300419573422,16.45
+probe_bs32,60,32,1,0.0006,cosine,True,adamw_torch_fused,82,20528.4,7.665190696716309,2132.7994610241562,27.37
+probe_bs64,60,64,1,0.0006,cosine,True,adamw_torch_fused,41,20580.7,8.13754940032959,3420.525250663863,49.1
+probe_bs8,60,8,1,0.0006,cosine,True,adamw_torch_fused,238,14902.0,7.61027717590332,2018.837593307465,13.12
+probe_lr1e-3,120,16,1,0.001,cosine,True,adamw_torch_fused,362,23539.7,6.5882415771484375,726.5022478948073,16.45
+probe_lr3e-4,120,16,1,0.0003,cosine,True,adamw_torch_fused,372,24282.8,7.0372443199157715,1138.2466372739939,16.45
+probe_lr6e-4,120,16,1,0.0006,cosine,True,adamw_torch_fused,366,23835.3,6.71826171875,827.378045002845,16.45
